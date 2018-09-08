@@ -35,7 +35,7 @@ public class Console : MonoBehaviour {
 
     // TODO a teletype effect would be cool - building up each symbol and the overall text in the bottom-to-top, right-to-left order.
 	void Update () {
-        const int width_in_symbols = 16;
+        // TODO const int width_in_symbols = 16;
         // TODO traverse a row at a time
         string bottom_row = "";
         for (int i = 0; i < this.text_symbols.Length; ++i)
