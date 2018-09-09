@@ -25,7 +25,9 @@
     _BlockHeight ("Dither Block Height", Int) = 2
     _PaletteSize ("Palette Size", Int) = 4
 
-    _DebugLightness ("Debug Lightness", Float) = 0.5
+    _DebugLightX ("Debug Light X", Float) = 0.5
+    _DebugLightY ("Debug Light Y", Float) = 0.5
+    _DebugLightZ ("Debug Light Z", Float) = 0.5
 
     // A single-channel texture, _BlockWidth x (_BlockHeight * _PaletteSize) e.g. 2x26 [for 2x2 blocksize and 4 colours], I think I want to lookup 'red' in the sampler.
     // Contains 8-bit values 0, 64, 128, or 192. Divide by 64 (round 255/_PaletteSize to the nearest power of 2) to give a colour index. Colour index will then index into 1x4 RGB texture.
@@ -56,7 +58,9 @@
 
       #include "UnityCG.cginc"
 
-      float _DebugLightness;
+      float _DebugLightX;
+      float _DebugLightY;
+      float _DebugLightZ;
       
       float _BlockWidth;
       float _BlockHeight;
@@ -70,6 +74,8 @@
   
 			struct v2f
 			{
+        // TODO I think to get flat shading I will have to split verts and recalculate normals; might be possible in the unity import settings.
+        float3 normal : NORMAL;
 			};
 
       // TODO use to compute scaling factor instead of hardcoded 64
@@ -79,11 +85,15 @@
       }
 
       v2f vert(
+        // TODO I'm using an output var because it's what the Unity example says you have to do for VPOS,
+        // I don't really understand
         float4 vertex : POSITION, // vertex position input
+        float3 normal : NORMAL,
         out float4 outpos : SV_POSITION // clip space position output
       )
       {
         v2f o;
+        o.normal = normal;
         outpos = UnityObjectToClipPos(vertex);
         return o;
       }
@@ -107,16 +117,19 @@
 
 			fixed4 frag (v2f i, UNITY_VPOS_TYPE screenPos : VPOS) : SV_Target
       {
-        // TODO rename all vars with _px, _uv, etc
-        // TODO dither pos based on screen pos
-        // TODO var for number of dither intermediates
-        float lightness = _DebugLightness;
+        float3 light_vec = float3(_DebugLightX, _DebugLightY, _DebugLightZ);
+        float3 light_brightness = length(light_vec);
+        float3 light_dir = normalize(light_vec);
+        
+        // float lightness = _DebugLightness;
+        float lightness = dot(light_dir, i.normal);
 
         // TODO version with screenPos.x % _BlockWidth doesn't work, giving stripes...
         float2 _BlockSize = { _BlockWidth, _BlockHeight };
         // float2 dither_offset_px = fmod(screenPos.xy, _BlockSize);
         float2 dither_offset_px = floor(frac(screenPos.xy / _BlockSize) * _BlockSize);
 
+        // TODO var for number of dither intermediates, currently 4 below is because we have 3 intermediates
         float block_count = 1 + 4 * (_PaletteSize - 1);
         float block_idx = round(lightness * (block_count - 1));
 
@@ -125,6 +138,7 @@
         
         float index = tex2D(_DitherTex, dither_tex_uv).r;
 
+        // TODO use round_to_pow2 above to compute the 64.0
         float2 palette_pos_px = { 0.0, ((255.0 * index) / 64.0) };
         float2 palette_pos_uv = get_pixel_center_from_uv(palette_pos_px, _PaletteTex_TexelSize.xy);
         fixed4 color = tex2D(_PaletteTex, palette_pos_uv);
