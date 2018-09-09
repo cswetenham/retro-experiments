@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour {
     public float speed;
-    public Text countText;
-    public Text winText;
+    // public Text countText;
+    // public Text winText;
 
     private Rigidbody rb;
     private int count;
@@ -34,9 +34,9 @@ public class PlayerController : MonoBehaviour {
     }
 
     void SetCountText() {
-        countText.text = "Score: " + count.ToString();
+        // countText.text = "Score: " + count.ToString();
         if (count == 12) {
-            winText.gameObject.SetActive(true);
+            // winText.gameObject.SetActive(true);
         }
     }
 }
