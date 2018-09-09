@@ -42,7 +42,7 @@
     // NOTE: Okay, if I have textures for all these things then I could #define BLOCK_HEIGHT, BLOCK_WIDTH, PALETTE_SIZE.
   }
 
-    SubShader
+  SubShader
   {
     Tags { "RenderType" = "Opaque" }
     LOD 100
@@ -50,7 +50,7 @@
     Pass
     {
       CGPROGRAM
-
+      #pragma target 3.0
       #pragma vertex vert
       #pragma fragment frag
 
@@ -67,15 +67,9 @@
       float4 _DitherTex_TexelSize;
       sampler2D _PaletteTex;
       float4 _PaletteTex_TexelSize;
-      
-			struct appdata
-			{
-				float4 vertex : POSITION;
-			};
-
+  
 			struct v2f
 			{
-				float4 vertex : SV_POSITION;
 			};
 
       // TODO use to compute scaling factor instead of hardcoded 64
@@ -84,12 +78,15 @@
         return pow(2.0, floor(log2(x)));
       }
 
-			v2f vert (appdata v)
-			{
-				v2f o;
-				o.vertex = UnityObjectToClipPos(v.vertex);
-				return o;
-			}
+      v2f vert(
+        float4 vertex : POSITION, // vertex position input
+        out float4 outpos : SV_POSITION // clip space position output
+      )
+      {
+        v2f o;
+        outpos = UnityObjectToClipPos(vertex);
+        return o;
+      }
 			
       // NOTE converting from pixel pos to UV of pixel centers:
       // pos_px / (size_px - 1)
@@ -108,27 +105,30 @@
       // NOTE had a problem here because that result of tex2D isn't 0-255 but 0-1 no matter the datatype I use!
       // Should revisit exactly what conversions are happening here to make sure result is accurate.
 
-			fixed4 frag (v2f i) : SV_Target
+			fixed4 frag (v2f i, UNITY_VPOS_TYPE screenPos : VPOS) : SV_Target
       {
         // TODO rename all vars with _px, _uv, etc
         // TODO dither pos based on screen pos
         // TODO var for number of dither intermediates
-        float dither_x = 0;
-        float dither_y = 0;
         float lightness = _DebugLightness;
+
+        // TODO version with screenPos.x % _BlockWidth doesn't work, giving stripes...
+        float2 _BlockSize = { _BlockWidth, _BlockHeight };
+        // float2 dither_offset_px = fmod(screenPos.xy, _BlockSize);
+        float2 dither_offset_px = floor(frac(screenPos.xy / _BlockSize) * _BlockSize);
 
         float block_count = 1 + 4 * (_PaletteSize - 1);
         float block_idx = round(lightness * (block_count - 1));
 
-        float2 dither_tex_px = { dither_x, dither_y + _BlockHeight * block_idx };
+        float2 dither_tex_px = { dither_offset_px.x, dither_offset_px.y + _BlockHeight * block_idx };
         float2 dither_tex_uv = get_pixel_center_from_uv(dither_tex_px, _DitherTex_TexelSize.xy);
-        // float index = tex2D(_DitherTex, float2(_DebugDitherU, _DebugDitherV)).r;
-        float index = tex2D(_DitherTex, dither_tex_uv).r;
         
+        float index = tex2D(_DitherTex, dither_tex_uv).r;
+
         float2 palette_pos_px = { 0.0, ((255.0 * index) / 64.0) };
         float2 palette_pos_uv = get_pixel_center_from_uv(palette_pos_px, _PaletteTex_TexelSize.xy);
         fixed4 color = tex2D(_PaletteTex, palette_pos_uv);
-				return color;
+        return color;
 			}
 			ENDCG
 		}
