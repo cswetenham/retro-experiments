@@ -729,7 +729,7 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 2100000, guid: 516da2c8f68beae41bff7acd668df868, type: 2}
+  - {fileID: 2100000, guid: 25ccc712cc9a0714da9c6802b7b744d9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -796,8 +796,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 10
-  countText: {fileID: 0}
-  winText: {fileID: 0}
 --- !u!1 &1483441940
 GameObject:
   m_ObjectHideFlags: 0
